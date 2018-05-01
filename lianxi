@@ -1,0 +1,162 @@
+install.packages("RCurl")
+library(RCurl)
+url.exists("http://www.baidu.com")
+d=debugGatherer();
+temp<-getURL("http://www.dataguru.cn/",debugfunction=d$update,
+             verbose=TRUE)
+cat(d$value()[3])
+cat(d$value()[2])
+cat(d$value()[1])
+################句柄操作，查看相关信息
+curl=getCurlHandle()
+D<-getURL("http://www.dataguru.cn/",curl=curl)
+getCurlInfo(curl)$response.code
+getCurlInfo(curl)
+##################武装自己的header
+myheader<-c(
+  "User-Agent"="Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9.1.6) ",
+  "Accept"="text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language"="en-us",
+  "Connection"="keep-alive",
+  "Accept-Charset"="GB2312,utf-8;q=0.7,*;q=0.7"
+)
+d=debugGatherer();
+temp<-getURL("http://www.baidu.com",debugfunction=d$update,verbose=TRUE,httpheader=myheader)
+cat(d$value()[3])
+cat(d$value()[2])
+cat(d$value()[1])
+############################followlocation
+curl=getCurlHandle()
+D<-getURL("http://www.sina.com",curl=curl,followlocation=T)############followlocation
+getCurlInfo(curl)$response.code
+############################BinaryURL
+url="http://sd.offcn.com/dl/2014/0715/20140715092308897.xls"
+temp<-getBinaryURL(url)
+note <-file("E:/Rfile/excel3/hellodata.xls", open = "wb")
+writeBin(temp,note)
+close(note)
+url="http://u2.huatu.com/shenzhen/fujian/2017082101.xls"
+temp<-getBinaryURL(url)
+note <-file("E:/Rfile/excel3/hellodata2.xls", open = "wb")
+writeBin(temp,note)
+close(note)
+
+#############################批量下载
+Sys.time()
+strsplit(as.character(Sys.time()),'')
+strsplit(as.character(Sys.time()),' ')##安装空格划分
+
+html<-getURL("http://rfunction.com/code/1202/")
+temp<-strsplit(html,"<li><a href=\"")[[1]]
+files<-strsplit(temp,"\"")
+files<-lapply(files,function(x){x[1]})
+files<-unlist(files)
+files<-files[-c(1,2)]
+base="http://rfunction.com/code/1202/"
+for(i in 1:length(files)){
+  url=paste(base,files[i],sep='');
+  temp2<-getURL(url)
+  note<-file(paste("E:/Rfile/excel4/",files[i],sep=''),open="wb")
+  writeBin(temp2,note)
+  close(note)
+  Sys.sleep(2)
+}
+###################XML包
+url="http://quotes.money.163.com/f10/cwbbzy_000002.html"
+wp<-getURL(url)
+doc<-htmlParse(wp, asText= TRUE)
+tables <-readHTMLTable(doc,which=2) #########读取第二个表单
+
+url="http://www.tcmap.com.cn/list/jiancheng_list.html"
+wp<-getURL(url)
+doc<-htmlParse(wp, asText= TRUE)
+tables <-readHTMLTable(doc,header=T) ####读取英文较好
+
+url="http://www.clearlycultural.com/geert-hofstede-cultural-dimensions/individualism/"
+wp<-getURL(url)
+doc<-htmlParse(wp, asText= TRUE)
+tables <-readHTMLTable(doc,header=T,which=2) 
+write.csv(tables,"E:/Rfile/excel4/1.CSV")
+#############################运用xPath爬取数据
+url="http://www.w3school.com.cn/example/xmle/books.xml"
+doc<-xmlParse(url)
+getNodeSet(doc,'/bookstore/book[1]')#########book[last()]
+##getNodeSet(doc,'/bookstore/book[position()<3]')
+a<-getNodeSet(doc,'//title[@lang]')#########book[last()]
+a<-getNodeSet(doc,'//book/price')
+getNodeSet(doc,'//title[@lang]|//book/price')
+
+temp<-getURL("http://t.dianping.com/list/guangzhou?q=%E7%94%B5%E5%BD%B1",Encoding="UTF-8",httpheader=myheader)
+write.table(temp,"E:/Rfile/excel3/1.txt")
+k=htmlParse(temp)
+getNodeSet(k,'//li[@class="tg-floor-item"]')
+youhu=sapply(getNodeSet(k,'//li[@class="tg-floor-item"]'),xmlValue)
+
+urllist=0##########批量访问电影团购网
+page=1:5;
+urllist[page]=paste("http://t.dianping.com/list/guangzhou?q=%E7%94%B5%E5%BD%B1&pageIndex=",page,sep="")
+youhui=NA
+for(i in 1:5){
+  temp<-getURL(urllist[i],Encoding="UTF-8",httpheader=myheader)
+  k=htmlParse(temp)
+  youhui0=sapply(getNodeSet(k,'//li[@class="tg-floor-item"]'),xmlValue)
+  youhui=cbind(youhui,youhui0)
+  cat(url,"\n")
+}
+#########################抓取股票信息
+url="http://vip.stock.finance.sina.com.cn/corp/go.php/vMS_MarketHistory/stockid/000651.phtml?year=2013&jidu=3";
+temp=getURL(url)
+k=strsplit(temp,"\r\n")[[1]]
+timeadr=k[grep("<a target='_blank'",k)+1]######加1是为了直接提取日期
+time=substring(timeadr,4,13)
+
+fpriceadr=k[grep("<a target='_blank'",k)+3]#######提取开盘价所在行
+fprice=gregexpr(">\\d+",fpriceadr)######利用正则表达式\d表示数字
+fprices1<-NULL
+for(i in 1:length(fpriceadr))
+{
+  tempp=fprice[[i]];
+  fprices1[i]=substring(fpriceadr[i],tempp+1,tempp+attr(tempp,"match.length")+3)
+  
+}
+
+fpriceadr=k[grep("<a target='_blank'",k)+4]
+fprice=gregexpr(">\\d+",fpriceadr)
+fprices2<-NULL
+for(i in 1:length(fpriceadr))
+{
+  tempp=fprice[[i]];
+  fprices2[i]=substring(fpriceadr[i],tempp+1,tempp+attr(tempp,"match.length")+3)
+  
+}
+data=data.frame(time,kaipanjia=fprices1,shoupanjia=fprices2)
+
+############抓取实时数据,隐藏数据
+url="http://hq.sinajs.cn/list=sz000651"
+getURL(url,Encoding="GBK")
+################################正则表达式匹配
+mychar="datagrau"
+chartr("u","r",mychar)##字符串替换
+list=c("data","guru","qihu")
+paste(list,collapse = "-")##字符串链接
+union(mychar,list)##并集
+intersect(mychar,list)##交集
+setdiff(list,mychar)##补集
+match("data",list)##匹配返回位置
+pmatch("dat",list)##部分匹配
+
+temp<-c("sunshine@163.com","hujikou","data@jik.kon","kjjfgd@ji.jikol")
+pattern1="^\\w+@\\w+\\.[A-Za-z]{2,4}$"
+pattern="\\w+@\\w+\\.[A-Za-z]{2,4}"
+grep(pattern,temp)
+temp1<-paste(temp,collapse=",")
+sub(pattern,"data",temp1)##正则替换第一个
+gsub(pattern,"data",temp1)##全部替换
+
+regexpr(pattern1,temp)##返回一个数字，1表示匹配，-1表示不匹配，以及两个属性，匹配的长度和是否使用useBytes
+regexec(pattern1,temp)##返回一个list，字符串中第一个匹配及其长度以及是否使用useBytes
+gregexpr(pattern1,temp)##返回一个list，每一个匹配及其长度以及是否使用useBytes
+
+regexpr(pattern,temp1)
+regexec(pattern,temp1)
+gregexpr(pattern,temp1)
